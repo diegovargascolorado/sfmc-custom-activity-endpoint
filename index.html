@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enviar a Webhook</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Salesforce Sans', Arial, sans-serif;
+      background: #f4f6f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 30px;
+      width: 100%;
+      max-width: 520px;
+    }
+    h2 {
+      color: #032D60;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    p.subtitle {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #333;
+      transition: border 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: #0176d3;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(1,118,211,0.15);
+    }
+    .info-box {
+      background: #e8f4fd;
+      border-left: 4px solid #0176d3;
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #032D60;
+      margin: 20px 0;
+      line-height: 1.6;
+    }
+    .info-box a {
+      color: #0176d3;
+      font-weight: bold;
+    }
+    .data-preview {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 14px;
+      margin-top: 20px;
+    }
+    .data-preview h3 {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+    .data-row:last-child { border-bottom: none; }
+    .data-key { color: #888; }
+    .data-val { color: #333; font-weight: 500; }
+    .btn-save {
+      margin-top: 24px;
+      width: 100%;
+      background: #0176d3;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-save:hover { background: #014f9e; }
+    .status {
+      margin-top: 12px;
+      font-size: 13px;
+      text-align: center;
+      color: #2e7d32;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>📡 Enviar datos al Webhook</h2>
+  <p class="subtitle">Esta actividad enviará los datos del contacto a tu servicio externo cuando pase por el Journey.</p>
+
+  <div class="info-box">
+    🔗 <strong>Servicio externo usado:</strong> <a href="https://webhook.site" target="_blank">webhook.site</a><br>
+    Ve a ese sitio, copia tu URL única y pégala abajo para recibir los datos en tiempo real.
+  </div>
+
+  <label for="webhookUrl">URL de tu Webhook</label>
+  <input type="text" id="webhookUrl" placeholder="https://webhook.site/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+
+  <div class="data-preview">
+    <h3>Datos que se enviarán</h3>
+    <div class="data-row"><span class="data-key">contactKey</span><span class="data-val">{{Contact.Key}}</span></div>
+    <div class="data-row"><span class="data-key">email</span><span class="data-val">{{InteractionDefaults.Email}}</span></div>
+    <div class="data-row"><span class="data-key">firstName</span><span class="data-val">{{InteractionDefaults.FirstName}}</span></div>
+    <div class="data-row"><span class="data-key">journeyName</span><span class="data-val">{{Journey.Name}}</span></div>
+    <div class="data-row"><span class="data-key">timestamp</span><span class="data-val">(automático)</span></div>
+  </div>
+
+  <button class="btn-save" onclick="guardarConfig()">💾 Guardar configuración</button>
+  <div class="status" id="statusMsg">✅ Configuración guardada correctamente</div>
+</div>
+
+<script>
+  // Cargar SDK de Journey Builder
+  var script = document.createElement('script');
+  script.src = 'https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js';
+  document.head.appendChild(script);
+
+  var jbActivity = {};
+
+  script.onload = function() {
+    window.jbActivity = new window.JourneyBuilderUISDK({
+      onInitActivity: function(payload) {
+        jbActivity = payload;
+        if (payload.configurationArguments && payload.configurationArguments.webhookUrl) {
+          document.getElementById('webhookUrl').value = payload.configurationArguments.webhookUrl;
+        }
+      },
+      onClickedNext: function() {
+        guardarConfig();
+        window.jbActivity.ready();
+      }
+    });
+  };
+
+  function guardarConfig() {
+    var url = document.getElementById('webhookUrl').value.trim();
+    if (!url) {
+      alert('Por favor ingresa la URL de tu webhook.');
+      return;
+    }
+
+    if (window.jbActivity && window.jbActivity.save) {
+      window.jbActivity.save({
+        configurationArguments: { webhookUrl: url },
+        metaData: { isConfigured: true }
+      });
+    }
+
+    document.getElementById('statusMsg').style.display = 'block';
+    setTimeout(function() {
+      document.getElementById('statusMsg').style.display = 'none';
+    }, 3000);
+  }
+</script>
+</body>
+</html>

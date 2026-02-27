@@ -1,0 +1,69 @@
+{
+  "workflowApiVersion": "1.1",
+  "metaData": {
+    "icon": "https://unpkg.com/ionicons@5.5.2/dist/svg/send-outline.svg",
+    "category": "message"
+  },
+  "type": "REST",
+  "lang": {
+    "en-US": {
+      "name": "Enviar a Webhook",
+      "description": "Envía datos del contacto a un servicio externo (webhook)"
+    }
+  },
+  "arguments": {
+    "execute": {
+      "inArguments": [
+        {
+          "contactKey": "{{Contact.Key}}"
+        },
+        {
+          "emailAddress": "{{InteractionDefaults.Email}}"
+        },
+        {
+          "firstName": "{{InteractionDefaults.FirstName}}"
+        },
+        {
+          "journeyName": "{{Journey.Name}}"
+        }
+      ],
+      "outArguments": [],
+      "url": "REEMPLAZAR_CON_URL_DE_TU_APP",
+      "verb": "POST",
+      "body": "",
+      "header": "",
+      "format": "json",
+      "useJwt": true,
+      "timeout": 10000
+    }
+  },
+  "configurationArguments": {
+    "applicationExtensionKey": "REEMPLAZAR_CON_TU_APP_EXTENSION_KEY",
+    "save": {
+      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/save",
+      "verb": "POST"
+    },
+    "publish": {
+      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/publish",
+      "verb": "POST"
+    },
+    "validate": {
+      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/validate",
+      "verb": "POST"
+    }
+  },
+  "wizardSteps": [
+    {
+      "label": "Configuración",
+      "key": "step1"
+    }
+  ],
+  "userInterfaces": {
+    "configModal": {
+      "height": 400,
+      "width": 600,
+      "fullscreen": false,
+      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/index.html"
+    }
+  }
+}
