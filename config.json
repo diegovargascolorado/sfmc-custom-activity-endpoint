@@ -40,15 +40,15 @@
   "configurationArguments": {
     "applicationExtensionKey": "REEMPLAZAR_CON_TU_APP_EXTENSION_KEY",
     "save": {
-      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/save",
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com/save",
       "verb": "POST"
     },
     "publish": {
-      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/publish",
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com/publish",
       "verb": "POST"
     },
     "validate": {
-      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/validate",
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com/validate",
       "verb": "POST"
     }
   },
