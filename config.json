@@ -18,6 +18,8 @@
         { "emailAddress": "{{InteractionDefaults.Email}}" },
         { "firstName": "{{InteractionDefaults.FirstName}}" },
         { "journeyName": "{{Journey.Name}}" },
+
+        /* Este valor lo llenará el modal (index.html) al guardar */
         { "webhookUrl": "" }
       ],
       "outArguments": [],
@@ -31,7 +33,7 @@
     }
   },
   "configurationArguments": {
-    "applicationExtensionKey": "180df5b7-e266-40d4-a774-c9fc107a703d",
+    "applicationExtensionKey": "180df5b7cccccccccccccccccccccccccc",
     "save": {
       "url": "https://sfmc-custom-activity-endpoint.onrender.com/save",
       "verb": "POST"
@@ -60,7 +62,7 @@
       "height": 500,
       "width": 800,
       "fullscreen": false,
-      "url": "https://sfmc-custom-activity-endpoint.onrender.com/index.html"
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com/index.html?v=10"
     }
   }
 }
