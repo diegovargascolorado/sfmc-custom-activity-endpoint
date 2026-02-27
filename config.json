@@ -7,7 +7,7 @@
   "type": "REST",
   "lang": {
     "en-US": {
-      "name": "Enviar a Webhook",
+      "name": "Prueba a Webhook",
       "description": "Envía datos del contacto a un servicio externo (webhook)"
     }
   },
