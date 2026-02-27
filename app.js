@@ -67,9 +67,9 @@ app.post("/execute", async (req, res) => {
     // pero dejamos fallback a configurationArguments por si acaso
     const configArgs = req.body.configurationArguments || {};
     const webhookUrl =
-      (contactData.webhookUrl && String(contactData.webhookUrl).trim()) ||
-      (configArgs.webhookUrl && String(configArgs.webhookUrl).trim()) ||
-      "";
+  (contactData.webhookUrl && String(contactData.webhookUrl).trim()) ||
+  (req.body.configurationArguments && req.body.configurationArguments.webhookUrl) ||
+  '';
 
     if (!webhookUrl) {
       console.error("[ERROR] No llegó webhookUrl (ni en inArguments ni en configurationArguments)");
