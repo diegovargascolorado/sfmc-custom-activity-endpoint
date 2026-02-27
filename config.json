@@ -33,7 +33,7 @@
     }
   },
   "configurationArguments": {
-    "applicationExtensionKey": "180df5b7cccccccccccccccccccccccccc",
+    "applicationExtensionKey": "180df5b7-e266-40d4-a774-c9fc107a703d",
     "save": {
       "url": "https://sfmc-custom-activity-endpoint.onrender.com/save",
       "verb": "POST"
