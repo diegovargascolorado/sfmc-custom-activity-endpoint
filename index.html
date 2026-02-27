@@ -1,65 +1,100 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Enviar a Webhook</title>
-    <script src="https://unpkg.com/postmonger@0.0.15/postmonger.js"></script>
-    <style>
-        body { font-family: Arial; padding:20px; }
-        input { width:100%; padding:8px; margin-top:10px; }
-        button { margin-top:15px; padding:10px; width:100%; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Enviar a Webhook</title>
+  <script src="https://unpkg.com/postmonger@0.0.15/postmonger.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 18px; }
+    label { display:block; margin-top: 12px; font-size: 13px; font-weight: 600; }
+    input { width: 100%; padding: 10px; margin-top: 6px; border:1px solid #ccc; border-radius: 4px; }
+    .hint { margin-top: 12px; background:#eef6ff; padding:10px; border-left:4px solid #0176d3; font-size: 13px; }
+    .ok { margin-top: 10px; color: #2e7d32; font-size: 13px; display:none; }
+    button { margin-top: 14px; width: 100%; padding: 10px; border:0; border-radius: 4px; background:#0176d3; color:#fff; font-weight: 700; cursor:pointer;}
+  </style>
 </head>
 <body>
 
-<h3>Enviar datos a Webhook</h3>
+  <h3>Enviar datos a Webhook</h3>
 
-<label>URL del Webhook</label>
-<input type="text" id="webhookUrl" placeholder="https://webhook.site/xxxx" />
+  <div class="hint">
+    Usa <b>webhook.site</b> para probar: copia tu URL única y pégala aquí.
+  </div>
 
-<button onclick="save()">Guardar</button>
+  <label>URL del Webhook</label>
+  <input id="webhookUrl" type="text" placeholder="https://webhook.site/xxxx-xxxx-xxxx" />
+
+  <button id="btnSave" type="button">Guardar configuración</button>
+  <div class="ok" id="okMsg">✅ Guardado</div>
 
 <script>
-    var connection = new Postmonger.Session();
-    var payload = {};
+  var connection = new Postmonger.Session();
+  var payload = {};
+  var input = document.getElementById('webhookUrl');
+  var btnSave = document.getElementById('btnSave');
+  var okMsg = document.getElementById('okMsg');
 
-    connection.on('initActivity', function (data) {
-        payload = data;
+  function setDoneEnabled(enabled) {
+    // En Journey Builder el botón es "done"
+    connection.trigger('updateButton', { button: 'done', enabled: enabled });
+  }
 
-        if (payload.configurationArguments &&
-            payload.configurationArguments.webhookUrl) {
-            document.getElementById('webhookUrl').value =
-                payload.configurationArguments.webhookUrl;
-        }
+  function currentUrlValid() {
+    var v = (input.value || '').trim();
+    return v.startsWith('https://') && v.length > 12;
+  }
 
-        connection.trigger('ready');
-    });
+  function applyAndUpdateActivity() {
+    payload.configurationArguments = payload.configurationArguments || {};
+    payload.configurationArguments.webhookUrl = (input.value || '').trim();
 
-    connection.on('clickedDone', function () {
-        save(true);
-    });
+    payload.metaData = payload.metaData || {};
+    payload.metaData.isConfigured = true;
 
-    function save(close) {
+    connection.trigger('updateActivity', payload);
+    setDoneEnabled(true);
+  }
 
-        var url = document.getElementById('webhookUrl').value;
+  connection.on('initActivity', function(data) {
+    payload = data || {};
 
-        if (!url) {
-            alert("Debes ingresar una URL");
-            return;
-        }
+    var saved = payload.configurationArguments && payload.configurationArguments.webhookUrl
+      ? payload.configurationArguments.webhookUrl
+      : '';
 
-        payload.configurationArguments = payload.configurationArguments || {};
-        payload.configurationArguments.webhookUrl = url;
+    input.value = saved;
 
-        payload.metaData = payload.metaData || {};
-        payload.metaData.isConfigured = true;
+    setDoneEnabled(currentUrlValid()); // habilita Done si ya hay URL
+    connection.trigger('ready');
+  });
 
-        connection.trigger('updateActivity', payload);
+  // Cuando el usuario escribe, habilitamos Done si la URL parece válida
+  input.addEventListener('input', function() {
+    setDoneEnabled(currentUrlValid());
+  });
 
-        if (close) {
-            connection.trigger('done');
-        }
+  btnSave.addEventListener('click', function() {
+    if (!currentUrlValid()) {
+      alert('Pega una URL válida (debe empezar con https://)');
+      setDoneEnabled(false);
+      return;
     }
+
+    applyAndUpdateActivity();
+    okMsg.style.display = 'block';
+    setTimeout(function(){ okMsg.style.display = 'none'; }, 1500);
+  });
+
+  // Cuando el usuario da Done abajo, guardamos y cerramos
+  connection.on('clickedDone', function() {
+    if (!currentUrlValid()) {
+      alert('Falta pegar una URL válida para poder cerrar.');
+      setDoneEnabled(false);
+      return;
+    }
+    applyAndUpdateActivity();
+    connection.trigger('done');
+  });
 </script>
 
 </body>
