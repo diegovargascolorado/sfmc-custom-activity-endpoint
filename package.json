@@ -1,7 +1,7 @@
 {
-  "name": "sfmc-custom-activity-endpoint",
+  "name": "sfmc-custom-activity-webhook",
   "version": "1.0.0",
-  "description": "SFMC Custom Activity Webhook",
+  "description": "Custom Activity para Salesforce Marketing Cloud que envía datos a un webhook externo",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
@@ -10,6 +10,6 @@
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^3.3.2"
   }
 }
