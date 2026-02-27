@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Enviar a Webhook</title>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -23,8 +24,16 @@
       width: 100%;
       max-width: 520px;
     }
-    h2 { color: #032D60; font-size: 18px; margin-bottom: 6px; }
-    p.subtitle { color: #666; font-size: 13px; margin-bottom: 24px; }
+    h2 {
+      color: #032D60;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    p.subtitle {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
     label {
       display: block;
       font-size: 13px;
@@ -102,15 +111,20 @@
       color: #2e7d32;
       display: none;
     }
+    .status.error { color: #b71c1c; }
   </style>
+
+  <!-- Postmonger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/postmonger/0.0.14/postmonger.js"></script>
 </head>
+
 <body>
 <div class="card">
   <h2>📡 Enviar datos al Webhook</h2>
   <p class="subtitle">Esta actividad enviará los datos del contacto a tu servicio externo cuando pase por el Journey.</p>
 
   <div class="info-box">
-    🔗 <strong>Servicio externo usado:</strong> <a href="https://webhook.site" target="_blank">webhook.site</a><br>
+    🔗 <strong>Servicio externo usado:</strong> <a href="https://webhook.site" target="_blank" rel="noreferrer">webhook.site</a><br>
     Ve a ese sitio, copia tu URL única y pégala abajo para recibir los datos en tiempo real.
   </div>
 
@@ -126,64 +140,72 @@
     <div class="data-row"><span class="data-key">timestamp</span><span class="data-val">(automático)</span></div>
   </div>
 
-  <button class="btn-save" id="btnSave" class="btn-save">💾 Guardar configuración</button>
+  <button class="btn-save" id="btnSave">💾 Guardar configuración</button>
   <div class="status" id="statusMsg">✅ Configuración guardada correctamente</div>
 </div>
 
 <script>
-  var script = document.createElement("script");
-  script.src = "https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js";
-  document.head.appendChild(script);
+  // Postmonger session
+  const connection = new Postmonger.Session();
+  let payload = {};
 
-  var connection = null;
-  var payloadData = null;
+  // Cuando el modal carga
+  connection.on('initActivity', (data) => {
+    payload = data || {};
+    const saved = payload?.arguments?.execute?.configurationArguments?.webhookUrl
+               || payload?.configurationArguments?.webhookUrl
+               || '';
 
-  function getWebhookFromInArgs(inArgs) {
-    for (var i = 0; i < inArgs.length; i++) {
-      if (inArgs[i].webhookUrl) {
-        return inArgs[i].webhookUrl;
-      }
-    }
-    return "";
+    if (saved) document.getElementById('webhookUrl').value = saved;
+  });
+
+  // Pedimos a Journey Builder que “habilite” el modal
+  connection.trigger('ready');
+
+  function showMsg(ok, text) {
+    const el = document.getElementById('statusMsg');
+    el.classList.toggle('error', !ok);
+    el.textContent = text;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 2500);
   }
 
-  function save() {
-    var url = document.getElementById("webhookUrl").value.trim();
+  function saveToPayload() {
+    const url = document.getElementById('webhookUrl').value.trim();
     if (!url) {
-      alert("Ingresa la URL del webhook.");
-      return;
+      showMsg(false, '❌ Por favor ingresa la URL de tu webhook.');
+      return false;
     }
 
-    payloadData.arguments.execute.inArguments.push({
-      webhookUrl: url
-    });
+    // Asegura estructura
+    payload.arguments = payload.arguments || {};
+    payload.arguments.execute = payload.arguments.execute || {};
+    payload.arguments.execute.configurationArguments = payload.arguments.execute.configurationArguments || {};
 
-    payloadData.metaData.isConfigured = true;
+    // Guardar config (lo que leerá /execute)
+    payload.arguments.execute.configurationArguments.webhookUrl = url;
 
-    connection.trigger("updateActivity", payloadData);
-    connection.trigger("nextStep");
+    // Marcar como configurada
+    payload.metaData = payload.metaData || {};
+    payload.metaData.isConfigured = true;
+
+    // Enviar a Journey Builder
+    connection.trigger('updateActivity', payload);
+    return true;
   }
 
-  script.onload = function () {
-    connection = new window.JourneyBuilderUISDK();
+  document.getElementById('btnSave').addEventListener('click', () => {
+    if (saveToPayload()) showMsg(true, '✅ Configuración guardada correctamente');
+  });
 
-    connection.on("initActivity", function (data) {
-      payloadData = data;
+  // Cuando el usuario da Next/Done en Journey Builder
+  connection.on('clickedNext', () => {
+    if (saveToPayload()) connection.trigger('nextStep');
+  });
 
-      var inArgs = payloadData.arguments.execute.inArguments;
-      var savedUrl = getWebhookFromInArgs(inArgs);
-
-      if (savedUrl) {
-        document.getElementById("webhookUrl").value = savedUrl;
-      }
-
-      connection.trigger("ready");
-    });
-
-    connection.on("clickedNext", save);
-
-    document.getElementById("btnSave").addEventListener("click", save);
-  };
+  connection.on('clickedBack', () => {
+    connection.trigger('prevStep');
+  });
 </script>
 </body>
 </html>
