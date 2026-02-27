@@ -28,7 +28,7 @@
         }
       ],
       "outArguments": [],
-      "url": "REEMPLAZAR_CON_URL_DE_TU_APP",
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com",
       "verb": "POST",
       "body": "",
       "header": "",
