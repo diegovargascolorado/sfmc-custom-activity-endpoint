@@ -71,12 +71,11 @@ app.post('/execute', async (req, res) => {
     console.log('[SFMC] Enviando payload al webhook:', JSON.stringify(payload, null, 2));
 
     // Enviar al webhook externo (webhook.site u otro)
-    const fetch = (await import('node-fetch')).default;
     const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
 
     const statusCode = response.status;
     console.log('[SFMC] Respuesta del webhook:', statusCode);
