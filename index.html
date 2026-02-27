@@ -131,114 +131,58 @@
 </div>
 
 <script>
-  // 1) Cargar SDK Journey Builder
   var script = document.createElement("script");
   script.src = "https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js";
   document.head.appendChild(script);
 
-  var jb = null;
-  var currentPayload = null;
+  var connection = null;
+  var payloadData = null;
 
-  // Helpers
-  function getInArgs(payload) {
-    try {
-      return (payload && payload.arguments && payload.arguments.execute && Array.isArray(payload.arguments.execute.inArguments))
-        ? payload.arguments.execute.inArguments
-        : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function findWebhookUrlFromInArgs(inArgs) {
-    // buscamos { webhookUrl: "..." } dentro de la lista
+  function getWebhookFromInArgs(inArgs) {
     for (var i = 0; i < inArgs.length; i++) {
-      var obj = inArgs[i] || {};
-      if (obj.webhookUrl) return String(obj.webhookUrl);
+      if (inArgs[i].webhookUrl) {
+        return inArgs[i].webhookUrl;
+      }
     }
     return "";
   }
 
-  function setWebhookUrlIntoInArgs(inArgs, url) {
-    // remueve cualquier webhookUrl viejo y agrega el nuevo
-    var cleaned = [];
-    for (var i = 0; i < inArgs.length; i++) {
-      var obj = inArgs[i] || {};
-      if (obj.webhookUrl !== undefined) continue;
-      cleaned.push(obj);
-    }
-    cleaned.push({ webhookUrl: url });
-    return cleaned;
-  }
-
-  function showOk() {
-    var el = document.getElementById("statusMsg");
-    el.style.display = "block";
-    setTimeout(function() { el.style.display = "none"; }, 2500);
-  }
-
-  function saveConfig() {
-    var url = (document.getElementById("webhookUrl").value || "").trim();
-
+  function save() {
+    var url = document.getElementById("webhookUrl").value.trim();
     if (!url) {
-      alert("Por favor ingresa la URL de tu webhook.");
+      alert("Ingresa la URL del webhook.");
       return;
     }
 
-    if (!currentPayload) {
-      alert("Aún no se ha inicializado la actividad. Espera 1 segundo y vuelve a intentar.");
-      return;
-    }
+    payloadData.arguments.execute.inArguments.push({
+      webhookUrl: url
+    });
 
-    // Tomamos los inArguments actuales definidos en config.json (contactKey, email, etc.)
-    var inArgs = getInArgs(currentPayload);
+    payloadData.metaData.isConfigured = true;
 
-    // Insertamos/actualizamos webhookUrl dentro de inArguments
-    inArgs = setWebhookUrlIntoInArgs(inArgs, url);
-
-    // Construimos el payload que Journey Builder persistirá
-    var updated = currentPayload || {};
-    updated.arguments = updated.arguments || {};
-    updated.arguments.execute = updated.arguments.execute || {};
-    updated.arguments.execute.inArguments = inArgs;
-
-    // Marcar como configurado (esto habilita “Done/Next” y evita warning)
-    updated.metaData = updated.metaData || {};
-    updated.metaData.isConfigured = true;
-
-    // Guardar
-    jb.save(updated);
-    showOk();
+    connection.trigger("updateActivity", payloadData);
+    connection.trigger("nextStep");
   }
 
-  script.onload = function() {
-    jb = new window.JourneyBuilderUISDK({
-      // cuando abre el modal, Journey Builder manda el "payload" actual
-      onInitActivity: function(payload) {
-        currentPayload = payload;
+  script.onload = function () {
+    connection = new window.JourneyBuilderUISDK();
 
-        // cargar el webhookUrl desde inArguments
-        var inArgs = getInArgs(payload);
-        var savedUrl = findWebhookUrlFromInArgs(inArgs);
-        if (savedUrl) {
-          document.getElementById("webhookUrl").value = savedUrl;
-        }
+    connection.on("initActivity", function (data) {
+      payloadData = data;
 
-        // avisar que el UI está listo
-        jb.ready();
-      },
+      var inArgs = payloadData.arguments.execute.inArguments;
+      var savedUrl = getWebhookFromInArgs(inArgs);
 
-      // cuando el usuario le da NEXT en el wizard
-      onClickedNext: function() {
-        saveConfig();
-        jb.next();
+      if (savedUrl) {
+        document.getElementById("webhookUrl").value = savedUrl;
       }
+
+      connection.trigger("ready");
     });
 
-    // botón guardar
-    document.getElementById("btnSave").addEventListener("click", function() {
-      saveConfig();
-    });
+    connection.on("clickedNext", save);
+
+    document.getElementById("btnSave").addEventListener("click", save);
   };
 </script>
 </body>
