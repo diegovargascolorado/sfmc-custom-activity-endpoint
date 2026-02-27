@@ -1,4 +1,4 @@
-/ app.js - Servidor Node.js para Custom Activity de SFMC
+// app.js - Servidor Node.js para Custom Activity de SFMC
 // Ejecutar con: node app.js
 // Requiere: npm install express body-parser cors node-fetch
 
