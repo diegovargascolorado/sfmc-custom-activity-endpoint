@@ -23,16 +23,8 @@
       width: 100%;
       max-width: 520px;
     }
-    h2 {
-      color: #032D60;
-      font-size: 18px;
-      margin-bottom: 6px;
-    }
-    p.subtitle {
-      color: #666;
-      font-size: 13px;
-      margin-bottom: 24px;
-    }
+    h2 { color: #032D60; font-size: 18px; margin-bottom: 6px; }
+    p.subtitle { color: #666; font-size: 13px; margin-bottom: 24px; }
     label {
       display: block;
       font-size: 13px;
@@ -64,10 +56,7 @@
       margin: 20px 0;
       line-height: 1.6;
     }
-    .info-box a {
-      color: #0176d3;
-      font-weight: bold;
-    }
+    .info-box a { color: #0176d3; font-weight: bold; }
     .data-preview {
       background: #f8f9fa;
       border: 1px solid #e0e0e0;
@@ -137,52 +126,120 @@
     <div class="data-row"><span class="data-key">timestamp</span><span class="data-val">(automático)</span></div>
   </div>
 
-  <button class="btn-save" onclick="guardarConfig()">💾 Guardar configuración</button>
+  <button class="btn-save" id="btnSave" class="btn-save">💾 Guardar configuración</button>
   <div class="status" id="statusMsg">✅ Configuración guardada correctamente</div>
 </div>
 
 <script>
-  // Cargar SDK de Journey Builder
-  var script = document.createElement('script');
-  script.src = 'https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js';
+  // 1) Cargar SDK Journey Builder
+  var script = document.createElement("script");
+  script.src = "https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js";
   document.head.appendChild(script);
 
-  var jbActivity = {};
+  var jb = null;
+  var currentPayload = null;
 
-  script.onload = function() {
-    window.jbActivity = new window.JourneyBuilderUISDK({
-      onInitActivity: function(payload) {
-        jbActivity = payload;
-        if (payload.configurationArguments && payload.configurationArguments.webhookUrl) {
-          document.getElementById('webhookUrl').value = payload.configurationArguments.webhookUrl;
-        }
-      },
-      onClickedNext: function() {
-        guardarConfig();
-        window.jbActivity.ready();
-      }
-    });
-  };
+  // Helpers
+  function getInArgs(payload) {
+    try {
+      return (payload && payload.arguments && payload.arguments.execute && Array.isArray(payload.arguments.execute.inArguments))
+        ? payload.arguments.execute.inArguments
+        : [];
+    } catch (e) {
+      return [];
+    }
+  }
 
-  function guardarConfig() {
-    var url = document.getElementById('webhookUrl').value.trim();
+  function findWebhookUrlFromInArgs(inArgs) {
+    // buscamos { webhookUrl: "..." } dentro de la lista
+    for (var i = 0; i < inArgs.length; i++) {
+      var obj = inArgs[i] || {};
+      if (obj.webhookUrl) return String(obj.webhookUrl);
+    }
+    return "";
+  }
+
+  function setWebhookUrlIntoInArgs(inArgs, url) {
+    // remueve cualquier webhookUrl viejo y agrega el nuevo
+    var cleaned = [];
+    for (var i = 0; i < inArgs.length; i++) {
+      var obj = inArgs[i] || {};
+      if (obj.webhookUrl !== undefined) continue;
+      cleaned.push(obj);
+    }
+    cleaned.push({ webhookUrl: url });
+    return cleaned;
+  }
+
+  function showOk() {
+    var el = document.getElementById("statusMsg");
+    el.style.display = "block";
+    setTimeout(function() { el.style.display = "none"; }, 2500);
+  }
+
+  function saveConfig() {
+    var url = (document.getElementById("webhookUrl").value || "").trim();
+
     if (!url) {
-      alert('Por favor ingresa la URL de tu webhook.');
+      alert("Por favor ingresa la URL de tu webhook.");
       return;
     }
 
-    if (window.jbActivity && window.jbActivity.save) {
-      window.jbActivity.save({
-        configurationArguments: { webhookUrl: url },
-        metaData: { isConfigured: true }
-      });
+    if (!currentPayload) {
+      alert("Aún no se ha inicializado la actividad. Espera 1 segundo y vuelve a intentar.");
+      return;
     }
 
-    document.getElementById('statusMsg').style.display = 'block';
-    setTimeout(function() {
-      document.getElementById('statusMsg').style.display = 'none';
-    }, 3000);
+    // Tomamos los inArguments actuales definidos en config.json (contactKey, email, etc.)
+    var inArgs = getInArgs(currentPayload);
+
+    // Insertamos/actualizamos webhookUrl dentro de inArguments
+    inArgs = setWebhookUrlIntoInArgs(inArgs, url);
+
+    // Construimos el payload que Journey Builder persistirá
+    var updated = currentPayload || {};
+    updated.arguments = updated.arguments || {};
+    updated.arguments.execute = updated.arguments.execute || {};
+    updated.arguments.execute.inArguments = inArgs;
+
+    // Marcar como configurado (esto habilita “Done/Next” y evita warning)
+    updated.metaData = updated.metaData || {};
+    updated.metaData.isConfigured = true;
+
+    // Guardar
+    jb.save(updated);
+    showOk();
   }
+
+  script.onload = function() {
+    jb = new window.JourneyBuilderUISDK({
+      // cuando abre el modal, Journey Builder manda el "payload" actual
+      onInitActivity: function(payload) {
+        currentPayload = payload;
+
+        // cargar el webhookUrl desde inArguments
+        var inArgs = getInArgs(payload);
+        var savedUrl = findWebhookUrlFromInArgs(inArgs);
+        if (savedUrl) {
+          document.getElementById("webhookUrl").value = savedUrl;
+        }
+
+        // avisar que el UI está listo
+        jb.ready();
+      },
+
+      // cuando el usuario le da NEXT en el wizard
+      onClickedNext: function() {
+        saveConfig();
+        jb.next();
+      }
+    });
+
+    // botón guardar
+    document.getElementById("btnSave").addEventListener("click", function() {
+      saveConfig();
+    });
+  };
 </script>
 </body>
 </html>
