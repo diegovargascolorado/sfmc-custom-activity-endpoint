@@ -7,7 +7,7 @@
   "type": "REST",
   "lang": {
     "en-US": {
-      "name": "Prueba a Webhook",
+      "name": "Enviar a Webhook",
       "description": "Envía datos del contacto a un servicio externo (webhook)"
     }
   },
@@ -50,14 +50,17 @@
     }
   },
   "wizardSteps": [
-    { "label": "Configuración", "key": "step1" }
+    {
+      "label": "Configuración",
+      "key": "step1"
+    }
   ],
   "userInterfaces": {
     "configModal": {
       "height": 500,
       "width": 800,
       "fullscreen": false,
-      "url": "https://sfmc-custom-activity-endpoint.onrender.com/index.html?v=999"
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com/index.html"
     }
   }
 }
