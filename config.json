@@ -38,7 +38,7 @@
     }
   },
   "configurationArguments": {
-    "applicationExtensionKey": "REEMPLAZAR_CON_TU_APP_EXTENSION_KEY",
+    "applicationExtensionKey": "https://sfmc-custom-activity-endpoint.onrender.com",
     "save": {
       "url": "https://sfmc-custom-activity-endpoint.onrender.com/save",
       "verb": "POST"
@@ -63,7 +63,7 @@
       "height": 400,
       "width": 600,
       "fullscreen": false,
-      "url": "REEMPLAZAR_CON_URL_DE_TU_APP/index.html"
+      "url": "https://sfmc-custom-activity-endpoint.onrender.com/index.html"
     }
   }
 }
