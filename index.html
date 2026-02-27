@@ -1,101 +1,120 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Enviar a Webhook</title>
-  <script src="https://unpkg.com/postmonger@0.0.15/postmonger.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 18px; }
-    label { display:block; margin-top: 12px; font-size: 13px; font-weight: 600; }
-    input { width: 100%; padding: 10px; margin-top: 6px; border:1px solid #ccc; border-radius: 4px; }
-    .hint { margin-top: 12px; background:#eef6ff; padding:10px; border-left:4px solid #0176d3; font-size: 13px; }
-    .ok { margin-top: 10px; color: #2e7d32; font-size: 13px; display:none; }
-    button { margin-top: 14px; width: 100%; padding: 10px; border:0; border-radius: 4px; background:#0176d3; color:#fff; font-weight: 700; cursor:pointer;}
+    body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f9;margin:0;padding:24px}
+    .card{background:#fff;border:1px solid #e6e6e6;border-radius:8px;max-width:760px;margin:0 auto;padding:18px}
+    h2{margin:0 0 12px 0}
+    label{display:block;margin:12px 0 6px 0;font-weight:600}
+    input{width:100%;padding:10px;border:1px solid #cfcfcf;border-radius:6px;font-size:14px}
+    button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:8px;background:#0176d3;color:#fff;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .hint{background:#e8f4fd;border-left:4px solid #0176d3;padding:10px;border-radius:6px;margin:10px 0;color:#032D60}
+    .ok{margin-top:10px;color:#2e7d32;display:none}
+    .err{margin-top:10px;color:#b00020;display:none;white-space:pre-wrap}
+    .small{font-size:12px;color:#666;margin-top:8px}
   </style>
 </head>
 <body>
+  <div class="card">
+    <h2>Enviar datos a Webhook</h2>
+    <div class="hint">
+      Usa <b>webhook.site</b> para probar: copia tu URL única y pégala aquí.
+    </div>
 
-  <h3>Enviar datos a Webhook</h3>
+    <label for="webhookUrl">URL del Webhook</label>
+    <input id="webhookUrl" type="text" placeholder="https://webhook.site/xxxx-xxxx-xxxx" />
 
-  <div class="hint">
-    Usa <b>webhook.site</b> para probar: copia tu URL única y pégala aquí.
+    <button id="btnSave" disabled>Guardar configuración</button>
+
+    <div class="ok" id="okMsg">✅ Guardado. Ya puedes cerrar con <b>Done</b>.</div>
+    <div class="err" id="errMsg"></div>
+
+    <div class="small" id="debug"></div>
   </div>
 
-  <label>URL del Webhook</label>
-  <input id="webhookUrl" type="text" placeholder="https://webhook.site/xxxx-xxxx-xxxx" />
+  <!-- SDK Journey Builder -->
+  <script src="https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js"></script>
 
-  <button id="btnSave" type="button">Guardar configuración</button>
-  <div class="ok" id="okMsg">✅ Guardado</div>
+  <script>
+    (function () {
+      const $url = document.getElementById('webhookUrl');
+      const $btn = document.getElementById('btnSave');
+      const $ok  = document.getElementById('okMsg');
+      const $err = document.getElementById('errMsg');
+      const $dbg = document.getElementById('debug');
 
-<script>
-  var connection = new Postmonger.Session();
-  var payload = {};
-  var input = document.getElementById('webhookUrl');
-  var btnSave = document.getElementById('btnSave');
-  var okMsg = document.getElementById('okMsg');
+      function showErr(msg){
+        $err.style.display = 'block';
+        $err.textContent = msg;
+      }
+      function clearErr(){
+        $err.style.display = 'none';
+        $err.textContent = '';
+      }
 
-  function setDoneEnabled(enabled) {
-    // En Journey Builder el botón es "done"
-    connection.trigger('updateButton', { button: 'done', enabled: enabled });
-  }
+      // Si el SDK no cargó, aquí fallaría
+      if (!window.JourneyBuilder) {
+        showErr("No se cargó el SDK de Journey Builder. Revisa que esta página esté cargando dentro de Journey Builder (iframe).");
+        return;
+      }
 
-  function currentUrlValid() {
-    var v = (input.value || '').trim();
-    return v.startsWith('https://') && v.length > 12;
-  }
+      const jb = new window.JourneyBuilder({
+        onInitActivity: function (payload) {
+          // Guardamos el payload por si se necesita
+          window._payload = payload;
 
-  function applyAndUpdateActivity() {
-    payload.configurationArguments = payload.configurationArguments || {};
-    payload.configurationArguments.webhookUrl = (input.value || '').trim();
+          // Cargar valor previo
+          const prev = payload && payload.configurationArguments && payload.configurationArguments.webhookUrl;
+          if (prev) $url.value = prev;
 
-    payload.metaData = payload.metaData || {};
-    payload.metaData.isConfigured = true;
+          $btn.disabled = false;
+          $dbg.textContent = "SDK OK · Activity inicializada";
+        },
 
-    connection.trigger('updateActivity', payload);
-    setDoneEnabled(true);
-  }
+        onClickedNext: function () {
+          // Cuando el usuario da Next/Done, intentamos guardar antes
+          saveConfig(true);
+        }
+      });
 
-  connection.on('initActivity', function(data) {
-    payload = data || {};
+      async function saveConfig(comingFromDone){
+        clearErr();
+        $ok.style.display = 'none';
 
-    var saved = payload.configurationArguments && payload.configurationArguments.webhookUrl
-      ? payload.configurationArguments.webhookUrl
-      : '';
+        const v = ($url.value || '').trim();
+        if (!v) {
+          showErr("Debes pegar una URL válida de webhook.site antes de guardar.");
+          return;
+        }
 
-    input.value = saved;
+        try {
+          // IMPORTANTE: isConfigured=true es lo que permite que Done funcione
+          jb.save({
+            configurationArguments: { webhookUrl: v },
+            metaData: { isConfigured: true }
+          });
 
-    setDoneEnabled(currentUrlValid()); // habilita Done si ya hay URL
-    connection.trigger('ready');
-  });
+          // Ready le dice a JB “terminé”
+          jb.ready();
 
-  // Cuando el usuario escribe, habilitamos Done si la URL parece válida
-  input.addEventListener('input', function() {
-    setDoneEnabled(currentUrlValid());
-  });
+          $ok.style.display = 'block';
 
-  btnSave.addEventListener('click', function() {
-    if (!currentUrlValid()) {
-      alert('Pega una URL válida (debe empezar con https://)');
-      setDoneEnabled(false);
-      return;
-    }
+          if (comingFromDone) {
+            // si venía desde Done, con ready() debería dejar cerrar
+          }
+        } catch (e) {
+          showErr("Error guardando configuración:\n" + (e && e.message ? e.message : String(e)));
+        }
+      }
 
-    applyAndUpdateActivity();
-    okMsg.style.display = 'block';
-    setTimeout(function(){ okMsg.style.display = 'none'; }, 1500);
-  });
-
-  // Cuando el usuario da Done abajo, guardamos y cerramos
-  connection.on('clickedDone', function() {
-    if (!currentUrlValid()) {
-      alert('Falta pegar una URL válida para poder cerrar.');
-      setDoneEnabled(false);
-      return;
-    }
-    applyAndUpdateActivity();
-    connection.trigger('done');
-  });
-</script>
-
+      $btn.addEventListener('click', function () {
+        saveConfig(false);
+      });
+    })();
+  </script>
 </body>
 </html>
