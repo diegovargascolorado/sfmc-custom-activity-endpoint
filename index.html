@@ -6,115 +6,118 @@
   <title>Enviar a Webhook</title>
   <style>
     body{font-family:Arial,Helvetica,sans-serif;background:#f4f6f9;margin:0;padding:24px}
-    .card{background:#fff;border:1px solid #e6e6e6;border-radius:8px;max-width:760px;margin:0 auto;padding:18px}
-    h2{margin:0 0 12px 0}
-    label{display:block;margin:12px 0 6px 0;font-weight:600}
-    input{width:100%;padding:10px;border:1px solid #cfcfcf;border-radius:6px;font-size:14px}
-    button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:8px;background:#0176d3;color:#fff;font-weight:700;cursor:pointer}
+    .card{max-width:820px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:24px}
+    h2{margin:0 0 6px;color:#032D60}
+    .sub{margin:0 0 18px;color:#6b7280;font-size:13px}
+    .info{background:#e8f4fd;border-left:4px solid #0176d3;border-radius:6px;padding:12px 14px;color:#032D60;font-size:13px;margin:14px 0}
+    label{display:block;margin:14px 0 6px;font-size:13px;font-weight:700;color:#374151}
+    input{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:14px}
+    input:focus{outline:none;border-color:#0176d3;box-shadow:0 0 0 3px rgba(1,118,211,.15)}
+    button{margin-top:14px;width:100%;padding:12px;border:0;border-radius:6px;background:#0176d3;color:#fff;font-weight:700;cursor:pointer}
     button:disabled{opacity:.6;cursor:not-allowed}
-    .hint{background:#e8f4fd;border-left:4px solid #0176d3;padding:10px;border-radius:6px;margin:10px 0;color:#032D60}
-    .ok{margin-top:10px;color:#2e7d32;display:none}
-    .err{margin-top:10px;color:#b00020;display:none;white-space:pre-wrap}
-    .small{font-size:12px;color:#666;margin-top:8px}
+    .ok{display:none;margin-top:10px;color:#2e7d32;font-size:13px;text-align:center}
+    .err{display:none;margin-top:10px;color:#b91c1c;font-size:13px;text-align:center}
+    .mini{margin-top:10px;font-size:12px;color:#6b7280}
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>Enviar datos a Webhook</h2>
-    <div class="hint">
+    <h2>📡 Enviar datos a Webhook</h2>
+    <p class="sub">Esta actividad enviará los datos del contacto cuando pase por el Journey.</p>
+
+    <div class="info">
       Usa <b>webhook.site</b> para probar: copia tu URL única y pégala aquí.
     </div>
 
     <label for="webhookUrl">URL del Webhook</label>
-    <input id="webhookUrl" type="text" placeholder="https://webhook.site/xxxx-xxxx-xxxx" />
+    <input id="webhookUrl" type="text" placeholder="https://webhook.site/xxxx-xxxx-xxxx-xxxx" />
 
-    <button id="btnSave" disabled>Guardar configuración</button>
+    <button id="btnSave" onclick="saveConfig()" disabled>Guardar configuración</button>
 
-    <div class="ok" id="okMsg">✅ Guardado. Ya puedes cerrar con <b>Done</b>.</div>
-    <div class="err" id="errMsg"></div>
+    <div id="ok" class="ok">✅ Configuración guardada. Ya puedes darle Done.</div>
+    <div id="err" class="err"></div>
 
-    <div class="small" id="debug"></div>
+    <div class="mini" id="statusMini">Cargando conexión con Journey Builder…</div>
   </div>
 
-  <!-- SDK Journey Builder -->
-  <script src="https://cdn.exacttarget.com/ufec/journey-builder-ui/custom-activity/sdk.js"></script>
+  <!-- SDK estable para Custom Activities -->
+  <script src="https://unpkg.com/postmonger@0.0.17/postmonger.js"></script>
 
   <script>
-    (function () {
-      const $url = document.getElementById('webhookUrl');
-      const $btn = document.getElementById('btnSave');
-      const $ok  = document.getElementById('okMsg');
-      const $err = document.getElementById('errMsg');
-      const $dbg = document.getElementById('debug');
+    // Conexión con Journey Builder
+    var connection = new Postmonger.Session();
 
-      function showErr(msg){
-        $err.style.display = 'block';
-        $err.textContent = msg;
-      }
-      function clearErr(){
-        $err.style.display = 'none';
-        $err.textContent = '';
-      }
+    var payload = null; // aquí Journey manda el estado de la actividad
 
-      // Si el SDK no cargó, aquí fallaría
-      if (!window.JourneyBuilder) {
-        showErr("No se cargó el SDK de Journey Builder. Revisa que esta página esté cargando dentro de Journey Builder (iframe).");
-        return;
-      }
+    var btnSave = document.getElementById("btnSave");
+    var ok = document.getElementById("ok");
+    var err = document.getElementById("err");
+    var statusMini = document.getElementById("statusMini");
 
-      const jb = new window.JourneyBuilder({
-        onInitActivity: function (payload) {
-          // Guardamos el payload por si se necesita
-          window._payload = payload;
+    function showError(msg){
+      err.style.display = "block";
+      err.textContent = msg;
+      ok.style.display = "none";
+    }
+    function showOk(){
+      ok.style.display = "block";
+      err.style.display = "none";
+      setTimeout(()=>{ ok.style.display="none"; }, 2500);
+    }
 
-          // Cargar valor previo
-          const prev = payload && payload.configurationArguments && payload.configurationArguments.webhookUrl;
-          if (prev) $url.value = prev;
+    // 1) Journey inicializa la actividad
+    connection.on("initActivity", function(data) {
+      payload = data || {};
+      var savedUrl = payload?.configurationArguments?.webhookUrl || "";
+      document.getElementById("webhookUrl").value = savedUrl;
 
-          $btn.disabled = false;
-          $dbg.textContent = "SDK OK · Activity inicializada";
-        },
+      btnSave.disabled = false;
+      statusMini.textContent = "Conectado a Journey Builder ✅";
+    });
 
-        onClickedNext: function () {
-          // Cuando el usuario da Next/Done, intentamos guardar antes
-          saveConfig(true);
-        }
-      });
+    // 2) Journey pide que validemos (al darle Done/Next)
+    connection.on("clickedNext", function() {
+      // Guardamos y dejamos avanzar
+      saveConfig(true);
+    });
 
-      async function saveConfig(comingFromDone){
-        clearErr();
-        $ok.style.display = 'none';
+    // Muy importante: decirle a Journey qué eventos escuchamos
+    connection.trigger("ready");
 
-        const v = ($url.value || '').trim();
-        if (!v) {
-          showErr("Debes pegar una URL válida de webhook.site antes de guardar.");
+    function saveConfig(isFromNext){
+      try{
+        if(!payload){
+          showError("No hay payload de Journey. Esta página debe abrirse desde Journey Builder.");
           return;
         }
 
-        try {
-          // IMPORTANTE: isConfigured=true es lo que permite que Done funcione
-          jb.save({
-            configurationArguments: { webhookUrl: v },
-            metaData: { isConfigured: true }
-          });
-
-          // Ready le dice a JB “terminé”
-          jb.ready();
-
-          $ok.style.display = 'block';
-
-          if (comingFromDone) {
-            // si venía desde Done, con ready() debería dejar cerrar
-          }
-        } catch (e) {
-          showErr("Error guardando configuración:\n" + (e && e.message ? e.message : String(e)));
+        var url = document.getElementById("webhookUrl").value.trim();
+        if(!url){
+          showError("Por favor ingresa la URL de tu webhook.");
+          return;
         }
-      }
 
-      $btn.addEventListener('click', function () {
-        saveConfig(false);
-      });
-    })();
+        // Guardar configuración en payload
+        payload.configurationArguments = payload.configurationArguments || {};
+        payload.configurationArguments.webhookUrl = url;
+
+        // Marcar como configurado (CLAVE para que no se quede cargando)
+        payload.metaData = payload.metaData || {};
+        payload.metaData.isConfigured = true;
+
+        // Enviar actualización a Journey
+        connection.trigger("updateActivity", payload);
+
+        showOk();
+
+        // Si el click vino de Done/Next, avanzamos
+        if(isFromNext){
+          connection.trigger("nextStep");
+        }
+      }catch(e){
+        showError("Error guardando: " + (e.message || e));
+      }
+    }
   </script>
 </body>
 </html>
