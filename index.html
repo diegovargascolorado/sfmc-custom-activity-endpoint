@@ -1,211 +1,66 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Enviar a Webhook</title>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Salesforce Sans', Arial, sans-serif;
-      background: #f4f6f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 30px;
-      width: 100%;
-      max-width: 520px;
-    }
-    h2 {
-      color: #032D60;
-      font-size: 18px;
-      margin-bottom: 6px;
-    }
-    p.subtitle {
-      color: #666;
-      font-size: 13px;
-      margin-bottom: 24px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #444;
-      margin-bottom: 6px;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-      color: #333;
-      transition: border 0.2s;
-    }
-    input[type="text"]:focus {
-      border-color: #0176d3;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(1,118,211,0.15);
-    }
-    .info-box {
-      background: #e8f4fd;
-      border-left: 4px solid #0176d3;
-      border-radius: 4px;
-      padding: 12px 16px;
-      font-size: 13px;
-      color: #032D60;
-      margin: 20px 0;
-      line-height: 1.6;
-    }
-    .info-box a { color: #0176d3; font-weight: bold; }
-    .data-preview {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      padding: 14px;
-      margin-top: 20px;
-    }
-    .data-preview h3 {
-      font-size: 13px;
-      color: #555;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .data-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 0;
-      border-bottom: 1px solid #eee;
-      font-size: 13px;
-    }
-    .data-row:last-child { border-bottom: none; }
-    .data-key { color: #888; }
-    .data-val { color: #333; font-weight: 500; }
-    .btn-save {
-      margin-top: 24px;
-      width: 100%;
-      background: #0176d3;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 4px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-save:hover { background: #014f9e; }
-    .status {
-      margin-top: 12px;
-      font-size: 13px;
-      text-align: center;
-      color: #2e7d32;
-      display: none;
-    }
-    .status.error { color: #b71c1c; }
-  </style>
-
-  <!-- Postmonger -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/postmonger/0.0.14/postmonger.js"></script>
+    <meta charset="UTF-8">
+    <title>Enviar a Webhook</title>
+    <script src="https://unpkg.com/postmonger@0.0.15/postmonger.js"></script>
+    <style>
+        body { font-family: Arial; padding:20px; }
+        input { width:100%; padding:8px; margin-top:10px; }
+        button { margin-top:15px; padding:10px; width:100%; }
+    </style>
 </head>
-
 <body>
-<div class="card">
-  <h2>📡 Enviar datos al Webhook</h2>
-  <p class="subtitle">Esta actividad enviará los datos del contacto a tu servicio externo cuando pase por el Journey.</p>
 
-  <div class="info-box">
-    🔗 <strong>Servicio externo usado:</strong> <a href="https://webhook.site" target="_blank" rel="noreferrer">webhook.site</a><br>
-    Ve a ese sitio, copia tu URL única y pégala abajo para recibir los datos en tiempo real.
-  </div>
+<h3>Enviar datos a Webhook</h3>
 
-  <label for="webhookUrl">URL de tu Webhook</label>
-  <input type="text" id="webhookUrl" placeholder="https://webhook.site/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+<label>URL del Webhook</label>
+<input type="text" id="webhookUrl" placeholder="https://webhook.site/xxxx" />
 
-  <div class="data-preview">
-    <h3>Datos que se enviarán</h3>
-    <div class="data-row"><span class="data-key">contactKey</span><span class="data-val">{{Contact.Key}}</span></div>
-    <div class="data-row"><span class="data-key">email</span><span class="data-val">{{InteractionDefaults.Email}}</span></div>
-    <div class="data-row"><span class="data-key">firstName</span><span class="data-val">{{InteractionDefaults.FirstName}}</span></div>
-    <div class="data-row"><span class="data-key">journeyName</span><span class="data-val">{{Journey.Name}}</span></div>
-    <div class="data-row"><span class="data-key">timestamp</span><span class="data-val">(automático)</span></div>
-  </div>
-
-  <button class="btn-save" id="btnSave">💾 Guardar configuración</button>
-  <div class="status" id="statusMsg">✅ Configuración guardada correctamente</div>
-</div>
+<button onclick="save()">Guardar</button>
 
 <script>
-  // Postmonger session
-  const connection = new Postmonger.Session();
-  let payload = {};
+    var connection = new Postmonger.Session();
+    var payload = {};
 
-  // Cuando el modal carga
-  connection.on('initActivity', (data) => {
-    payload = data || {};
-    const saved = payload?.arguments?.execute?.configurationArguments?.webhookUrl
-               || payload?.configurationArguments?.webhookUrl
-               || '';
+    connection.on('initActivity', function (data) {
+        payload = data;
 
-    if (saved) document.getElementById('webhookUrl').value = saved;
-  });
+        if (payload.configurationArguments &&
+            payload.configurationArguments.webhookUrl) {
+            document.getElementById('webhookUrl').value =
+                payload.configurationArguments.webhookUrl;
+        }
 
-  // Pedimos a Journey Builder que “habilite” el modal
-  connection.trigger('ready');
+        connection.trigger('ready');
+    });
 
-  function showMsg(ok, text) {
-    const el = document.getElementById('statusMsg');
-    el.classList.toggle('error', !ok);
-    el.textContent = text;
-    el.style.display = 'block';
-    setTimeout(() => el.style.display = 'none', 2500);
-  }
+    connection.on('clickedDone', function () {
+        save(true);
+    });
 
-  function saveToPayload() {
-    const url = document.getElementById('webhookUrl').value.trim();
-    if (!url) {
-      showMsg(false, '❌ Por favor ingresa la URL de tu webhook.');
-      return false;
+    function save(close) {
+
+        var url = document.getElementById('webhookUrl').value;
+
+        if (!url) {
+            alert("Debes ingresar una URL");
+            return;
+        }
+
+        payload.configurationArguments = payload.configurationArguments || {};
+        payload.configurationArguments.webhookUrl = url;
+
+        payload.metaData = payload.metaData || {};
+        payload.metaData.isConfigured = true;
+
+        connection.trigger('updateActivity', payload);
+
+        if (close) {
+            connection.trigger('done');
+        }
     }
-
-    // Asegura estructura
-    payload.arguments = payload.arguments || {};
-    payload.arguments.execute = payload.arguments.execute || {};
-    payload.arguments.execute.configurationArguments = payload.arguments.execute.configurationArguments || {};
-
-    // Guardar config (lo que leerá /execute)
-    payload.arguments.execute.configurationArguments.webhookUrl = url;
-
-    // Marcar como configurada
-    payload.metaData = payload.metaData || {};
-    payload.metaData.isConfigured = true;
-
-    // Enviar a Journey Builder
-    connection.trigger('updateActivity', payload);
-    return true;
-  }
-
-  document.getElementById('btnSave').addEventListener('click', () => {
-    if (saveToPayload()) showMsg(true, '✅ Configuración guardada correctamente');
-  });
-
-  // Cuando el usuario da Next/Done en Journey Builder
-  connection.on('clickedNext', () => {
-    if (saveToPayload()) connection.trigger('nextStep');
-  });
-
-  connection.on('clickedBack', () => {
-    connection.trigger('prevStep');
-  });
 </script>
+
 </body>
 </html>
