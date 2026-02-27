@@ -1,7 +1,7 @@
 {
   "workflowApiVersion": "1.1",
   "metaData": {
-    "icon": "https://unpkg.com/ionicons@5.5.2/dist/svg/send-outline.svg",
+    "icon": "https://www.coomeva.com.co/info/coomeva/media/galeria215231.svg",
     "category": "message"
   },
   "type": "REST",
